@@ -82,7 +82,13 @@ async function savePaymentOnce(session: Stripe.Checkout.Session) {
     paidAt: new Date(),
   });
 
-  await collections.bookings().updateOne({ _id: new ObjectId(bookingId) }, { $set: { paymentStatus: 'paid' } });
+  await collections.bookings().updateOne(
+    { _id: new ObjectId(bookingId) },
+    {
+      $set: { paymentStatus: 'paid' },
+      $push: { statusHistory: { status: 'paid', changedAt: new Date() } } as never,
+    }
+  );
 }
 
 // GET /api/payments/verify - customer only, success-page verification
