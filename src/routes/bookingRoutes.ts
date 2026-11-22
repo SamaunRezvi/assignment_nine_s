@@ -75,6 +75,7 @@ router.post('/', verifyToken, verifyCustomer, async (req, res) => {
     status: 'requested',
     finalAmount: service.basePrice,
     paymentStatus: 'unpaid',
+    statusHistory: [{ status: 'requested', changedAt: new Date() }],
     createdAt: new Date(),
   };
 
@@ -132,7 +133,13 @@ router.patch('/:id/cancel', verifyToken, verifyCustomer, async (req, res) => {
     return res.status(409).send({ message: 'Only a requested booking can be cancelled' });
   }
 
-  await collections.bookings().updateOne({ _id: new ObjectId(id) }, { $set: { status: 'cancelled' } });
+  await collections.bookings().updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: { status: 'cancelled' },
+      $push: { statusHistory: { status: 'cancelled', changedAt: new Date() } } as never,
+    }
+  );
   res.send({ message: 'Booking cancelled' });
 });
 
@@ -182,8 +189,54 @@ router.patch('/:id/status', verifyToken, verifyTechnician, async (req, res) => {
     update.finalAmount = amount;
   }
 
-  await collections.bookings().updateOne({ _id: new ObjectId(id) }, { $set: update });
+  await collections.bookings().updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: update,
+      $push: { statusHistory: { status, changedAt: new Date() } } as never,
+    }
+  );
   res.send({ message: 'Booking status updated' });
+});
+
+// PATCH /api/bookings/:id/rating - customer only, owner only, paid + completed only, once
+router.patch('/:id/rating', verifyToken, verifyCustomer, async (req, res) => {
+  const id = req.params.id as string;
+  const { rating } = req.body;
+  const review = typeof req.body.review === 'string' ? req.body.review.trim() : '';
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return res.status(400).send({ message: 'Rating must be a whole number between 1 and 5' });
+  }
+
+  if (!review) {
+    return res.status(400).send({ message: 'A review is required' });
+  }
+
+  const booking = await collections.bookings().findOne({ _id: new ObjectId(id) });
+
+  if (!booking) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (booking.customerEmail !== req.user!.email) {
+    return res.status(403).send({ message: 'Forbidden access' });
+  }
+
+  if (booking.status !== 'completed' || booking.paymentStatus !== 'paid') {
+    return res.status(409).send({ message: 'You can only rate a completed and paid job' });
+  }
+
+  if (booking.rating) {
+    return res.status(409).send({ message: 'You have already rated this job' });
+  }
+
+  await collections.bookings().updateOne({ _id: new ObjectId(id) }, { $set: { rating, review } });
+  res.send({ message: 'Thank you for your feedback' });
 });
 
 export default router;
