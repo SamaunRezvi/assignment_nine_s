@@ -10,7 +10,10 @@ const ACTIVE_STATUSES = ['requested', 'accepted', 'in-progress'];
 // POST /api/bookings - customer only
 router.post('/', verifyToken, verifyCustomer, async (req, res) => {
   const user = req.user!;
-  const { serviceId, phone, address, preferredDate, problemDescription } = req.body;
+  const { serviceId, preferredDate } = req.body;
+  const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : '';
+  const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
+  const problemDescription = typeof req.body.problemDescription === 'string' ? req.body.problemDescription.trim() : '';
 
   if (!serviceId || !phone || !address || !preferredDate || !problemDescription) {
     return res.status(400).send({ message: 'All fields are required' });
