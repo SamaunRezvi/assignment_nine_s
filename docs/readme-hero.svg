@@ -1,0 +1,77 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#134e4a"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="300" fill="url(#bg)"/>
+
+  <g transform="translate(120,150)">
+    <g>
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="8s" repeatCount="indefinite"/>
+      <path d="M0,-55 L13,-48 L13,-30 L30,-13 L48,-13 L55,0 L48,13 L30,13 L13,30 L13,48 L0,55 L-13,48 L-13,30 L-30,13 L-48,13 L-55,0 L-48,-13 L-30,-13 L-13,-30 L-13,-48 Z"
+            fill="#f59e0b" opacity="0.9"/>
+      <circle r="20" fill="#0f172a"/>
+    </g>
+  </g>
+
+  <g font-family="Verdana, Arial, sans-serif">
+    <rect x="300" y="60" width="230" height="72" rx="12" fill="url(#card)" opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" dur="6s" begin="0s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0,20; 0,0; 0,0; 0,-20" dur="6s" begin="0s" repeatCount="indefinite"/>
+    </rect>
+    <text x="320" y="90" fill="#f0fdfa" font-size="16" font-weight="bold" opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" dur="6s" begin="0s" repeatCount="indefinite"/>
+      Requested
+    </text>
+    <text x="320" y="114" fill="#ccfbf1" font-size="12" opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0" dur="6s" begin="0s" repeatCount="indefinite"/>
+      AC Gas Refill - Dhanmondi
+    </text>
+
+    <rect x="300" y="60" width="230" height="72" rx="12" fill="url(#card)" opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="6s" begin="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="320" y="90" fill="#f0fdfa" font-size="16" font-weight="bold" opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="6s" begin="2s" repeatCount="indefinite"/>
+      In Progress
+    </text>
+    <text x="320" y="114" fill="#ccfbf1" font-size="12" opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="6s" begin="2s" repeatCount="indefinite"/>
+      Laptop Keyboard Repair
+    </text>
+
+    <rect x="300" y="60" width="230" height="72" rx="12" fill="url(#card)" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;1;1" dur="6s" begin="4s" repeatCount="indefinite"/>
+    </rect>
+    <text x="320" y="90" fill="#f0fdfa" font-size="16" font-weight="bold" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;1;1" dur="6s" begin="4s" repeatCount="indefinite"/>
+      Paid
+    </text>
+    <text x="320" y="114" fill="#ccfbf1" font-size="12" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;1;1" dur="6s" begin="4s" repeatCount="indefinite"/>
+      $45.00 - Stripe checkout
+    </text>
+  </g>
+
+  <g font-family="Verdana, Arial, sans-serif">
+    <text x="600" y="150" fill="#f59e0b" font-size="40" font-weight="bold" text-anchor="middle">FixMate API</text>
+    <text x="600" y="180" fill="#99f6e4" font-size="16" text-anchor="middle">Role-based repair booking backend</text>
+  </g>
+
+  <g transform="translate(1000,150)" opacity="0.85">
+    <circle r="6" fill="#5eead4">
+      <animate attributeName="r" values="6;10;6" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="24" fill="none" stroke="#5eead4" stroke-width="2">
+      <animate attributeName="r" values="24;40;24" dur="2.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>
