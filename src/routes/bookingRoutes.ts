@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 import { collections } from '../config/db';
 import { verifyToken, verifyCustomer, verifyTechnician } from '../middleware/auth';
+import { sendBookingStatusEmail } from '../lib/email';
 
 const router = Router();
 
@@ -199,6 +200,20 @@ router.patch('/:id/status', verifyToken, verifyTechnician, async (req, res) => {
       $push: { statusHistory: { status, changedAt: new Date() } } as never,
     }
   );
+
+  if (status === 'accepted' || status === 'rejected' || status === 'completed') {
+    void sendBookingStatusEmail(
+      {
+        customerEmail: booking.customerEmail,
+        customerName: booking.customerName,
+        serviceTitle: booking.serviceTitle,
+        technicianName: booking.technicianName,
+        finalAmount: status === 'completed' ? Number(finalAmount) : undefined,
+      },
+      status
+    );
+  }
+
   res.send({ message: 'Booking status updated' });
 });
 

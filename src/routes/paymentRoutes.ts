@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import Stripe from 'stripe';
 import { collections } from '../config/db';
 import { verifyToken, verifyCustomer } from '../middleware/auth';
+import { sendBookingStatusEmail } from '../lib/email';
 
 const router = Router();
 
@@ -88,6 +89,17 @@ async function savePaymentOnce(session: Stripe.Checkout.Session) {
       $set: { paymentStatus: 'paid' },
       $push: { statusHistory: { status: 'paid', changedAt: new Date() } } as never,
     }
+  );
+
+  void sendBookingStatusEmail(
+    {
+      customerEmail: booking.customerEmail,
+      customerName: booking.customerName,
+      serviceTitle: booking.serviceTitle,
+      technicianName: booking.technicianName,
+      finalAmount: booking.finalAmount,
+    },
+    'paid'
   );
 }
 
