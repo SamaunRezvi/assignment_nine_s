@@ -115,6 +115,37 @@ router.get('/technician', verifyToken, verifyTechnician, async (req, res) => {
   res.send(sanitized);
 });
 
+// GET /api/bookings/:id - owner (customer or technician) or admin only
+router.get('/:id', verifyToken, async (req, res) => {
+  const id = req.params.id as string;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  const booking = await collections.bookings().findOne({ _id: new ObjectId(id) });
+
+  if (!booking) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  const user = req.user!;
+  const isOwner =
+    (user.role === 'customer' && booking.customerEmail === user.email) ||
+    (user.role === 'technician' && booking.technicianEmail === user.email);
+
+  if (!isOwner && user.role !== 'admin') {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (user.role === 'technician') {
+    const { review, ...rest } = booking;
+    return res.send(rest);
+  }
+
+  res.send(booking);
+});
+
 // PATCH /api/bookings/:id/cancel - customer only, owner only, requested only
 router.patch('/:id/cancel', verifyToken, verifyCustomer, async (req, res) => {
   const id = req.params.id as string;
