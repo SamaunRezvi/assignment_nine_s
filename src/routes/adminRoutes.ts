@@ -5,6 +5,8 @@ import { verifyToken, verifyAdmin } from '../middleware/auth';
 
 const router = Router();
 
+const BOOKING_STATUSES = ['requested', 'accepted', 'rejected', 'in-progress', 'completed', 'cancelled'];
+
 router.use(verifyToken, verifyAdmin);
 
 // GET /api/admin/users
@@ -70,6 +72,11 @@ router.get('/services', async (req, res) => {
 // GET /api/admin/bookings - all bookings, optional status filter
 router.get('/bookings', async (req, res) => {
   const { status } = req.query as Record<string, string>;
+
+  if (status && status !== 'all' && !BOOKING_STATUSES.includes(status)) {
+    return res.status(400).send({ message: 'Invalid status filter' });
+  }
+
   const query: Record<string, unknown> = {};
   if (status && status !== 'all') query.status = status;
 
