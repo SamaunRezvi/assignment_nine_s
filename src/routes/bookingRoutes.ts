@@ -20,6 +20,14 @@ router.post('/', verifyToken, verifyCustomer, async (req, res) => {
     return res.status(400).send({ message: 'Problem description must be at least 20 characters' });
   }
 
+  const requestedDate = new Date(preferredDate);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  if (Number.isNaN(requestedDate.getTime()) || requestedDate < startOfToday) {
+    return res.status(400).send({ message: 'Preferred date must be today or a future date' });
+  }
+
   if (!ObjectId.isValid(serviceId)) {
     return res.status(400).send({ message: 'Invalid service' });
   }
@@ -58,7 +66,7 @@ router.post('/', verifyToken, verifyCustomer, async (req, res) => {
     customerEmail: user.email,
     customerPhone: phone,
     address,
-    preferredDate: new Date(preferredDate),
+    preferredDate: requestedDate,
     problemDescription,
     status: 'requested',
     finalAmount: service.basePrice,
