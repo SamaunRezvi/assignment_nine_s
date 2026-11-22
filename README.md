@@ -8,7 +8,17 @@ FixMate connects customers with verified technicians for device and appliance re
 
 ## Live API URL
 
-(to be added after deployment)
+https://fixmate-server-qkj7.onrender.com
+
+## Test Credentials
+
+All seeded accounts use the password `Password123`.
+
+- Admin: admin@fixmate.test
+- Technician: rafiq.technician@fixmate.test
+- Technician: nadia.technician@fixmate.test
+- Customer: tanvir.customer@fixmate.test
+- Customer: sumaiya.customer@fixmate.test
 
 ## Tech Stack
 
