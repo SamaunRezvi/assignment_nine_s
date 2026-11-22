@@ -108,7 +108,10 @@ router.get('/technician', verifyToken, verifyTechnician, async (req, res) => {
   }
 
   const bookings = await collections.bookings().find(query).sort({ createdAt: -1 }).toArray();
-  res.send(bookings);
+
+  // Technicians see the star rating only, the written review stays customer/admin only.
+  const sanitized = bookings.map(({ review, ...rest }) => rest);
+  res.send(sanitized);
 });
 
 // PATCH /api/bookings/:id/cancel - customer only, owner only, requested only
