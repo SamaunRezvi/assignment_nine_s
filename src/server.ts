@@ -27,7 +27,7 @@ async function start() {
   await connectDB();
   const auth = createAuth();
 
-  app.all('/api/auth/*', toNodeHandler(auth));
+  app.all('/api/auth/*splat', toNodeHandler(auth));
 
   // Stripe webhook needs the raw body, so it must be mounted before express.json()
   app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
