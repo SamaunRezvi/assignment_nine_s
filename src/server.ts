@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
 import { connectDB } from './config/db';
@@ -44,6 +44,19 @@ async function start() {
   app.use('/api/payments', paymentRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/users', userRoutes);
+
+  app.get('/health', (_req, res) => {
+    res.send({ status: 'ok', uptime: process.uptime() });
+  });
+
+  app.use((_req, res) => {
+    res.status(404).send({ message: 'Route not found' });
+  });
+
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(err);
+    res.status(500).send({ message: 'Something went wrong on the server' });
+  });
 
   app.listen(port, () => {
     console.log(`FixMate server listening on port ${port}`);
