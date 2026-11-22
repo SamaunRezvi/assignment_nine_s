@@ -94,7 +94,10 @@ router.get('/:id', async (req, res) => {
 // POST /api/services - technician only
 router.post('/', verifyToken, verifyTechnician, async (req, res) => {
   const user = req.user!;
-  const { title, category, description, image, basePrice, estimatedDuration, serviceMode, serviceArea } = req.body;
+  const { category, image, basePrice, estimatedDuration, serviceMode } = req.body;
+  const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+  const description = typeof req.body.description === 'string' ? req.body.description.trim() : '';
+  const serviceArea = typeof req.body.serviceArea === 'string' ? req.body.serviceArea.trim() : '';
 
   if (!title || !category || !description || !image || !basePrice || !estimatedDuration || !serviceMode || !serviceArea) {
     return res.status(400).send({ message: 'All fields are required' });
