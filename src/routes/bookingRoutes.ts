@@ -57,6 +57,13 @@ router.post('/', verifyToken, verifyCustomer, async (req, res) => {
     return res.status(409).send({ message: 'You already have an active request for this service' });
   }
 
+  const technician = await collections.users().findOne({ email: service.technicianEmail });
+  const preferredDateStr = preferredDate.slice(0, 10);
+
+  if (technician?.unavailableDates?.includes(preferredDateStr)) {
+    return res.status(409).send({ message: 'The technician is not available on this date' });
+  }
+
   const customer = await collections.users().findOne({ email: user.email });
 
   const booking = {

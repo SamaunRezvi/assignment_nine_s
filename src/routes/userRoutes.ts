@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { collections } from '../config/db';
-import { verifyToken } from '../middleware/auth';
+import { verifyToken, verifyTechnician } from '../middleware/auth';
 
 const router = Router();
 
@@ -66,6 +66,29 @@ router.patch('/profile', verifyToken, async (req, res) => {
   await collections.users().updateOne({ email: req.user!.email }, { $set: update });
   const updated = await collections.users().findOne({ email: req.user!.email });
   res.send(updated);
+});
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+// PATCH /api/users/availability - technician only, own account only
+router.patch('/availability', verifyToken, verifyTechnician, async (req, res) => {
+  const { date, action } = req.body;
+
+  if (typeof date !== 'string' || !DATE_PATTERN.test(date)) {
+    return res.status(400).send({ message: 'Date must be in YYYY-MM-DD format' });
+  }
+
+  if (action !== 'block' && action !== 'unblock') {
+    return res.status(400).send({ message: 'Action must be block or unblock' });
+  }
+
+  const update = action === 'block'
+    ? { $addToSet: { unavailableDates: date } }
+    : { $pull: { unavailableDates: date } };
+
+  await collections.users().updateOne({ email: req.user!.email }, update as never);
+  const user = await collections.users().findOne({ email: req.user!.email });
+  res.send({ unavailableDates: user?.unavailableDates ?? [] });
 });
 
 export default router;
