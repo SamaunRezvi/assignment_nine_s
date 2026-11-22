@@ -134,10 +134,31 @@ async function main() {
   const customerDocs = await db.collection('user').find({ email: { $in: customers.map((c) => c.email) } }).toArray();
   const customerByEmail = new Map(customerDocs.map((c) => [c.email, c]));
 
+  const STATUS_SEQUENCE: Record<string, string[]> = {
+    requested: ['requested'],
+    accepted: ['requested', 'accepted'],
+    rejected: ['requested', 'rejected'],
+    'in-progress': ['requested', 'accepted', 'in-progress'],
+    completed: ['requested', 'accepted', 'in-progress', 'completed'],
+    cancelled: ['requested', 'cancelled'],
+  };
+
+  function buildStatusHistory(status: string, paymentStatus: string, createdAt: Date) {
+    const sequence = [...STATUS_SEQUENCE[status]];
+    if (paymentStatus === 'paid') sequence.push('paid');
+
+    const stepMs = 1000 * 60 * 60 * 3;
+    return sequence.map((step, i) => ({
+      status: step,
+      changedAt: new Date(createdAt.getTime() + i * stepMs),
+    }));
+  }
+
   function makeBooking(serviceIndex: number, customerIndex: number, status: string, paymentStatus: string, daysAgo: number) {
     const service = insertedServices[serviceIndex];
     const customer = customers[customerIndex];
     const customerDoc = customerByEmail.get(customer.email);
+    const createdAt = new Date(Date.now() - daysAgo * 1000 * 60 * 60 * 24);
     return {
       serviceId: String(service._id),
       serviceTitle: service.title,
@@ -155,7 +176,8 @@ async function main() {
       status,
       finalAmount: service.basePrice,
       paymentStatus,
-      createdAt: new Date(Date.now() - daysAgo * 1000 * 60 * 60 * 24),
+      statusHistory: buildStatusHistory(status, paymentStatus, createdAt),
+      createdAt,
     };
   }
 
@@ -164,7 +186,11 @@ async function main() {
     makeBooking(1, 1, 'accepted', 'unpaid', 2),
     makeBooking(5, 0, 'in-progress', 'unpaid', 3),
     makeBooking(6, 1, 'completed', 'unpaid', 4),
-    makeBooking(8, 0, 'completed', 'paid', 6),
+    {
+      ...makeBooking(8, 0, 'completed', 'paid', 6),
+      rating: 5,
+      review: 'Excellent service, arrived on time and fixed the issue quickly.',
+    },
     makeBooking(11, 1, 'rejected', 'unpaid', 5),
     makeBooking(12, 0, 'cancelled', 'unpaid', 2),
   ];
