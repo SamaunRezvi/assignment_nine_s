@@ -20,6 +20,9 @@
     "url": "https://github.com/SamaunRezvi/assignment_nine_s/issues"
   },
   "homepage": "https://github.com/SamaunRezvi/assignment_nine_s#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "better-auth": "^1.7.27",
     "cors": "^2.8.6",
