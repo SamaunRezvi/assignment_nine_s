@@ -100,6 +100,18 @@ router.post('/', verifyToken, verifyTechnician, async (req, res) => {
     return res.status(400).send({ message: 'All fields are required' });
   }
 
+  if (!CATEGORIES.includes(category)) {
+    return res.status(400).send({ message: 'Invalid category' });
+  }
+
+  if (!['Home Visit', 'Shop Drop-off'].includes(serviceMode)) {
+    return res.status(400).send({ message: 'Invalid service mode' });
+  }
+
+  if (!(Number(basePrice) > 0)) {
+    return res.status(400).send({ message: 'Base price must be a positive number' });
+  }
+
   const technician = await collections.users().findOne({ email: user.email });
 
   const service = {
@@ -152,6 +164,18 @@ router.patch('/:id', verifyToken, verifyTechnician, async (req, res) => {
   }
 
   const { title, category, description, image, basePrice, estimatedDuration, serviceMode, serviceArea } = req.body;
+
+  if (category !== undefined && !CATEGORIES.includes(category)) {
+    return res.status(400).send({ message: 'Invalid category' });
+  }
+
+  if (serviceMode !== undefined && !['Home Visit', 'Shop Drop-off'].includes(serviceMode)) {
+    return res.status(400).send({ message: 'Invalid service mode' });
+  }
+
+  if (basePrice !== undefined && !(Number(basePrice) > 0)) {
+    return res.status(400).send({ message: 'Base price must be a positive number' });
+  }
 
   const update: Record<string, unknown> = { approvalStatus: 'pending' };
   if (title !== undefined) update.title = title;
