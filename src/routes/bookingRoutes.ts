@@ -197,6 +197,7 @@ const TECHNICIAN_TRANSITIONS: Record<string, string> = {
 router.patch('/:id/status', verifyToken, verifyTechnician, async (req, res) => {
   const id = req.params.id as string;
   const { status, finalAmount } = req.body;
+  const completionPhoto = typeof req.body.completionPhoto === 'string' ? req.body.completionPhoto : undefined;
 
   if (!ObjectId.isValid(id)) {
     return res.status(404).send({ message: 'Booking not found' });
@@ -229,6 +230,7 @@ router.patch('/:id/status', verifyToken, verifyTechnician, async (req, res) => {
       return res.status(400).send({ message: 'A valid final amount is required to complete a job' });
     }
     update.finalAmount = amount;
+    if (completionPhoto) update.completionPhoto = completionPhoto;
   }
 
   await collections.bookings().updateOne(
