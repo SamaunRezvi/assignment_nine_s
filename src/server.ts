@@ -4,7 +4,7 @@ import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
 import { connectDB } from './config/db';
 import { createAuth } from './config/auth';
-import authRoutes from './routes/authRoutes';
+import createAuthRoutes from './routes/authRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import bookingRoutes from './routes/bookingRoutes';
 import paymentRoutes from './routes/paymentRoutes';
@@ -53,7 +53,7 @@ async function start() {
     res.send({ message: 'FixMate server is running' });
   });
 
-  app.use('/api/jwt', authRoutes);
+  app.use('/api/jwt', createAuthRoutes(auth));
   app.use('/api/services', serviceRoutes);
   app.use('/api/bookings', bookingRoutes);
   app.use('/api/payments', paymentRoutes);

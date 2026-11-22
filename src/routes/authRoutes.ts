@@ -1,31 +1,36 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import { fromNodeHeaders } from 'better-auth/node';
 import { collections } from '../config/db';
+import type { Auth } from '../config/auth';
 
-const router = Router();
+// Issues an API JWT for the user identified by the caller's own BetterAuth
+// session cookie. The email is never read from the request body, since a
+// client-supplied email would let anyone mint a token for any account.
+export default function createAuthRoutes(auth: Auth) {
+  const router = Router();
 
-// Issues an API JWT for an already-authenticated BetterAuth user (by email).
-// The client calls this right after sign-in/sign-up to get a token for API requests.
-router.post('/', async (req, res) => {
-  const { email } = req.body;
+  router.post('/', async (req, res) => {
+    const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
 
-  if (!email) {
-    return res.status(400).send({ message: 'Email is required' });
-  }
+    if (!session?.user?.email) {
+      return res.status(401).send({ message: 'Not signed in' });
+    }
 
-  const user = await collections.users().findOne({ email });
+    const user = await collections.users().findOne({ email: session.user.email });
 
-  if (!user) {
-    return res.status(404).send({ message: 'User not found' });
-  }
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
 
-  const token = jwt.sign(
-    { email: user.email, role: user.role || 'customer' },
-    process.env.JWT_SECRET as string,
-    { expiresIn: '7d' }
-  );
+    const token = jwt.sign(
+      { email: user.email, role: user.role || 'customer' },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' }
+    );
 
-  res.send({ token });
-});
+    res.send({ token });
+  });
 
-export default router;
+  return router;
+}
