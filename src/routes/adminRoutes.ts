@@ -9,9 +9,19 @@ const BOOKING_STATUSES = ['requested', 'accepted', 'rejected', 'in-progress', 'c
 
 router.use(verifyToken, verifyAdmin);
 
-// GET /api/admin/users
-router.get('/users', async (_req, res) => {
-  const users = await collections.users().find().sort({ createdAt: -1 }).toArray();
+// GET /api/admin/users - optional search by name or email
+router.get('/users', async (req, res) => {
+  const { search } = req.query as Record<string, string>;
+
+  const query: Record<string, unknown> = {};
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  const users = await collections.users().find(query).sort({ createdAt: -1 }).toArray();
   res.send(users);
 });
 
@@ -74,9 +84,9 @@ router.get('/services', async (req, res) => {
   res.send(services);
 });
 
-// GET /api/admin/bookings - all bookings, optional status filter
+// GET /api/admin/bookings - all bookings, optional status filter and search
 router.get('/bookings', async (req, res) => {
-  const { status } = req.query as Record<string, string>;
+  const { status, search } = req.query as Record<string, string>;
 
   if (status && status !== 'all' && !BOOKING_STATUSES.includes(status)) {
     return res.status(400).send({ message: 'Invalid status filter' });
@@ -84,14 +94,33 @@ router.get('/bookings', async (req, res) => {
 
   const query: Record<string, unknown> = {};
   if (status && status !== 'all') query.status = status;
+  if (search) {
+    query.$or = [
+      { customerName: { $regex: search, $options: 'i' } },
+      { technicianName: { $regex: search, $options: 'i' } },
+      { serviceTitle: { $regex: search, $options: 'i' } },
+    ];
+  }
 
   const bookings = await collections.bookings().find(query).sort({ createdAt: -1 }).toArray();
   res.send(bookings);
 });
 
-// GET /api/admin/payments - all payments + total revenue
-router.get('/payments', async (_req, res) => {
-  const payments = await collections.payments().find().sort({ paidAt: -1 }).toArray();
+// GET /api/admin/payments - all payments + total revenue, optional search
+router.get('/payments', async (req, res) => {
+  const { search } = req.query as Record<string, string>;
+
+  const query: Record<string, unknown> = {};
+  if (search) {
+    query.$or = [
+      { customerName: { $regex: search, $options: 'i' } },
+      { technicianName: { $regex: search, $options: 'i' } },
+      { serviceTitle: { $regex: search, $options: 'i' } },
+      { transactionId: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  const payments = await collections.payments().find(query).sort({ paidAt: -1 }).toArray();
   const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   res.send({ payments, totalRevenue });
 });
