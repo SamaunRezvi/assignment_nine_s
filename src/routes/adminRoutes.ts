@@ -136,4 +136,63 @@ router.get('/stats', async (_req, res) => {
   res.send({ totalUsers, totalTechnicians, pendingServices });
 });
 
+// GET /api/admin/analytics - revenue over time, bookings by category, technician leaderboard
+router.get('/analytics', async (_req, res) => {
+  const [revenueByDay, bookingsByCategory, technicianLeaderboard] = await Promise.all([
+    collections
+      .payments()
+      .aggregate([
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$paidAt' } },
+            revenue: { $sum: '$amount' },
+          },
+        },
+        { $sort: { _id: 1 } },
+        { $project: { _id: 0, date: '$_id', revenue: 1 } },
+      ])
+      .toArray(),
+    collections
+      .bookings()
+      .aggregate([
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $project: { _id: 0, category: '$_id', count: 1 } },
+      ])
+      .toArray(),
+    collections
+      .bookings()
+      .aggregate([
+        { $match: { status: 'completed' } },
+        {
+          $group: {
+            _id: '$technicianEmail',
+            technicianName: { $first: '$technicianName' },
+            completedJobs: { $sum: 1 },
+          },
+        },
+        { $sort: { completedJobs: -1 } },
+        { $limit: 10 },
+        { $project: { _id: 0, technicianEmail: '$_id', technicianName: 1, completedJobs: 1 } },
+      ])
+      .toArray(),
+  ]);
+
+  const ratingByTechnician = await collections
+    .bookings()
+    .aggregate([
+      { $match: { rating: { $exists: true } } },
+      { $group: { _id: '$technicianEmail', averageRating: { $avg: '$rating' } } },
+    ])
+    .toArray();
+
+  const ratingMap = new Map(ratingByTechnician.map((r) => [r._id, Math.round(r.averageRating * 10) / 10]));
+  const leaderboard = technicianLeaderboard.map((t) => ({
+    ...t,
+    averageRating: ratingMap.get(t.technicianEmail) ?? null,
+  }));
+
+  res.send({ revenueByDay, bookingsByCategory, technicianLeaderboard: leaderboard });
+});
+
 export default router;
