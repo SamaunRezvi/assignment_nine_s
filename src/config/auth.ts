@@ -19,6 +19,9 @@ export function createAuth() {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       },
     },
+    account: {
+      storeStateStrategy: 'cookie',
+    },
     user: {
       additionalFields: {
         role: {
