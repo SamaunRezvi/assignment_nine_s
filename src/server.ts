@@ -20,6 +20,7 @@ app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
+    maxAge: 86400,
   })
 );
 
@@ -32,7 +33,7 @@ async function start() {
   // Stripe webhook needs the raw body, so it must be mounted before express.json()
   app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
-  app.use(express.json());
+  app.use(express.json({ limit: '2mb' }));
 
   app.use((req, _res, next) => {
     console.log(`${req.method} ${req.originalUrl}`);
