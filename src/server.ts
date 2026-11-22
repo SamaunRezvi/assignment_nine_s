@@ -29,7 +29,14 @@ async function start() {
   await connectDB();
   const auth = createAuth();
 
-  app.all('/api/auth/*splat', toNodeHandler(auth));
+  app.all('/api/auth/*splat', async (req, res, next) => {
+    try {
+      await toNodeHandler(auth)(req, res);
+    } catch (err) {
+      console.error('BetterAuth handler error:', err);
+      next(err);
+    }
+  });
 
   // Stripe webhook needs the raw body, so it must be mounted before express.json()
   app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
