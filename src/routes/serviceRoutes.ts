@@ -15,9 +15,35 @@ const CATEGORIES = [
   'Electrical',
 ];
 
+async function attachRatingSummary<T extends { _id: unknown }>(services: T[]): Promise<(T & { averageRating?: number; reviewCount?: number })[]> {
+  if (services.length === 0) return services;
+
+  const serviceIds = services.map((s) => String(s._id));
+
+  const summaries = await collections
+    .bookings()
+    .aggregate([
+      { $match: { serviceId: { $in: serviceIds }, rating: { $exists: true } } },
+      { $group: { _id: '$serviceId', averageRating: { $avg: '$rating' }, reviewCount: { $sum: 1 } } },
+    ])
+    .toArray();
+
+  const summaryById = new Map(summaries.map((s) => [s._id as string, s]));
+
+  return services.map((service) => {
+    const summary = summaryById.get(String(service._id));
+    if (!summary) return service;
+    return {
+      ...service,
+      averageRating: Math.round(summary.averageRating * 10) / 10,
+      reviewCount: summary.reviewCount,
+    };
+  });
+}
+
 // GET /api/services - public, supports search/filter/sort/pagination (Challenge 1)
 router.get('/', async (req, res) => {
-  const { search, category, serviceMode, sort, page = '1', limit = '12' } = req.query as Record<string, string>;
+  const { search, category, serviceMode, area, sort, page = '1', limit = '12' } = req.query as Record<string, string>;
 
   const query: Record<string, unknown> = {
     approvalStatus: 'approved',
@@ -39,6 +65,10 @@ router.get('/', async (req, res) => {
     query.serviceMode = serviceMode;
   }
 
+  if (area) {
+    query.serviceArea = { $regex: area, $options: 'i' };
+  }
+
   let sortOption: Record<string, 1 | -1> = { createdAt: -1 };
   if (sort === 'price-asc') sortOption = { basePrice: 1 };
   if (sort === 'price-desc') sortOption = { basePrice: -1 };
@@ -54,22 +84,26 @@ router.get('/', async (req, res) => {
     .skip((pageNum - 1) * limitNum)
     .limit(limitNum);
 
-  const [services, total] = await Promise.all([
+  const [rawServices, total] = await Promise.all([
     cursor.toArray(),
     collections.services().countDocuments(query),
   ]);
+
+  const services = await attachRatingSummary(rawServices);
 
   res.send({ services, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
 });
 
 // GET /api/services/featured - home page, latest 6 approved + available
 router.get('/featured', async (_req, res) => {
-  const services = await collections
+  const rawServices = await collections
     .services()
     .find({ approvalStatus: 'approved', isAvailable: true })
     .sort({ createdAt: -1 })
     .limit(6)
     .toArray();
+
+  const services = await attachRatingSummary(rawServices);
 
   res.send(services);
 });
@@ -88,7 +122,13 @@ router.get('/:id', async (req, res) => {
     return res.status(404).send({ message: 'Service not found' });
   }
 
-  res.send(service);
+  const [withRating] = await attachRatingSummary([service]);
+
+  const approvedCount = await collections
+    .services()
+    .countDocuments({ technicianEmail: service.technicianEmail, approvalStatus: 'approved' });
+
+  res.send({ ...withRating, isVerified: approvedCount > 0 });
 });
 
 // POST /api/services - technician only
