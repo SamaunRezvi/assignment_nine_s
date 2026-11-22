@@ -30,6 +30,10 @@ router.post('/create-checkout-session', verifyToken, verifyCustomer, async (req,
     return res.status(409).send({ message: 'This booking is not ready for payment' });
   }
 
+  if (!(booking.finalAmount > 0)) {
+    return res.status(409).send({ message: 'This booking has no valid amount to pay' });
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: [
