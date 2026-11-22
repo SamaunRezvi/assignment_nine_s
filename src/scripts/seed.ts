@@ -8,6 +8,7 @@ const PASSWORD = 'Password123';
 const technicians = [
   { name: 'Rafiq Hasan', email: 'rafiq.technician@fixmate.test', area: 'Mirpur, Dhaka', bio: 'Certified electronics repair technician with 8 years of experience in smartphones and laptops.' },
   { name: 'Nadia Islam', email: 'nadia.technician@fixmate.test', area: 'Dhanmondi, Dhaka', bio: 'Specialist in home appliance repair including AC, refrigerator and washing machine servicing.' },
+  { name: 'Imran Kabir', email: 'imran.technician@fixmate.test', area: 'Mirpur, Dhaka', bio: 'Electrical and TV repair technician with a decade of field experience across Dhaka.' },
 ];
 
 const customers = [
