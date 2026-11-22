@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
   if (sort === 'newest') sortOption = { createdAt: -1 };
 
   const pageNum = Math.max(parseInt(page, 10) || 1, 1);
-  const limitNum = Math.max(parseInt(limit, 10) || 12, 1);
+  const limitNum = Math.min(Math.max(parseInt(limit, 10) || 12, 1), 50);
 
   const cursor = collections
     .services()
