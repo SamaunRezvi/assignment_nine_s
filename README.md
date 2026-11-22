@@ -155,6 +155,17 @@ Run `npm run test:notifications` for role scoping, authentication, preference/re
 validation, SSE delivery, reconnect recovery, and disconnect cleanup tests using
 an isolated in-memory database stub.
 
+Review submissions atomically save the rating, feedback, `ratedAt`, and a `rated`
+history event only once. The notification stream includes a feedback alert for
+the booking participants and admins. Run `npm run test:reviews` to verify owner
+and payment restrictions, review validation, duplicate protection, and event creation.
+
+Admin Transactions reads the `payments` collection, newest payment first, and
+reports the sum of stored payment amounts as total revenue. Seed/demo records
+are included when present; this total is recorded gross payments, not platform
+commission or technician payouts. Payment descriptions use the booked service
+title, while device-specific problems remain in the booking description.
+
 ## npm Packages Used
 
 express, mongodb, cors, dotenv, jsonwebtoken, stripe, better-auth, typescript, ts-node-dev

@@ -235,7 +235,19 @@ router.patch('/:id/rating', verifyToken, verifyCustomer, async (req, res) => {
     return res.status(409).send({ message: 'You have already rated this job' });
   }
 
-  await collections.bookings().updateOne({ _id: new ObjectId(id) }, { $set: { rating, review } });
+  const ratedAt = new Date();
+  const result = await collections.bookings().updateOne(
+    {
+      _id: new ObjectId(id), customerEmail: req.user!.email,
+      status: 'completed', paymentStatus: 'paid',
+      $or: [{ rating: { $exists: false } }, { rating: null }],
+    },
+    {
+      $set: { rating, review, ratedAt },
+      $push: { statusHistory: { status: 'rated', changedAt: ratedAt } } as never,
+    }
+  );
+  if (!result.matchedCount) return res.status(409).send({ message: 'You have already rated this job' });
   res.send({ message: 'Thank you for your feedback' });
 });
 

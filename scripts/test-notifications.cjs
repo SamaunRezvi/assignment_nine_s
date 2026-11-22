@@ -39,6 +39,11 @@ test('notifications: role scopes, authentication, preferences, read state, live 
     assert.equal(snapshot.items[0].title, 'New repair request');
     assert.ok(snapshot.items[0].href.startsWith(`/dashboard/${role}/`));
     assert.equal(snapshot.unreadCount, 1);
+    rows = [{ bookingId: 'reviewed-booking', status: 'rated', serviceTitle: 'Display repair', customerName: 'Tanvir Ahmed', rating: 5, review: 'Great work', createdAt: new Date() }];
+    const reviewed = await notificationSnapshot({ email: `${role}@example.test`, role });
+    assert.equal(reviewed.items[0].title, 'New customer feedback');
+    assert.equal(reviewed.items[0].message, 'Tanvir Ahmed rated Display repair 5/5: Great work');
+    assert.ok(reviewed.items[0].href.startsWith(`/dashboard/${role}/`));
   }
 
   const app = express();

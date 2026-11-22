@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "ts-node-dev --transpile-only src/scripts/seed.ts",
-    "test:notifications": "npm run build && node --test scripts/test-notifications.cjs"
+    "test:notifications": "npm run build && node --test scripts/test-notifications.cjs",
+    "test:reviews": "npm run build && node --test scripts/test-booking-reviews.cjs"
   },
   "repository": {
     "type": "git",
