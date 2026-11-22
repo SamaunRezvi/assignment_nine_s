@@ -29,12 +29,24 @@ router.get('/stats', verifyToken, async (req, res) => {
   }
 
   if (role === 'technician') {
-    const [totalServices, approvedServices, pendingRequests] = await Promise.all([
+    const [totalServices, approvedServices, pendingRequests, ratingSummary] = await Promise.all([
       collections.services().countDocuments({ technicianEmail: email }),
       collections.services().countDocuments({ technicianEmail: email, approvalStatus: 'approved' }),
       collections.bookings().countDocuments({ technicianEmail: email, status: 'requested' }),
+      collections
+        .bookings()
+        .aggregate([
+          { $match: { technicianEmail: email, rating: { $exists: true } } },
+          { $group: { _id: null, averageRating: { $avg: '$rating' }, reviewCount: { $sum: 1 } } },
+        ])
+        .toArray(),
     ]);
-    return res.send({ totalServices, approvedServices, pendingRequests });
+
+    const summary = ratingSummary[0];
+    const averageRating = summary ? Math.round(summary.averageRating * 10) / 10 : null;
+    const reviewCount = summary?.reviewCount ?? 0;
+
+    return res.send({ totalServices, approvedServices, pendingRequests, averageRating, reviewCount });
   }
 
   res.send({});
