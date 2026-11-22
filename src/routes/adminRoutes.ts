@@ -62,6 +62,11 @@ router.patch('/services/:id/approval', async (req, res) => {
 // GET /api/admin/services - all services, optional approvalStatus filter
 router.get('/services', async (req, res) => {
   const { approvalStatus } = req.query as Record<string, string>;
+
+  if (approvalStatus && !['pending', 'approved', 'rejected'].includes(approvalStatus)) {
+    return res.status(400).send({ message: 'Invalid approval status filter' });
+  }
+
   const query: Record<string, unknown> = {};
   if (approvalStatus) query.approvalStatus = approvalStatus;
 
