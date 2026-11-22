@@ -1,4 +1,4 @@
-[![FixMate API animated server illustration with repair job status cards](/SamaunRezvi/assignment_nine_s/raw/main/docs/readme-hero.svg)](/SamaunRezvi/assignment_nine_s/blob/main/docs/readme-hero.svg)
+![FixMate API animated server illustration with repair job status cards](https://raw.githubusercontent.com/SamaunRezvi/assignment_nine_s/main/docs/readme-hero.svg)
 
 <div align="center">
 
