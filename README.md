@@ -37,6 +37,7 @@ All seeded accounts use the password `Password123`.
 | Admin | admin@fixmate.test |
 | Technician | rafiq.technician@fixmate.test |
 | Technician | nadia.technician@fixmate.test |
+| Technician | imran.technician@fixmate.test |
 | Customer | tanvir.customer@fixmate.test |
 | Customer | sumaiya.customer@fixmate.test |
 
