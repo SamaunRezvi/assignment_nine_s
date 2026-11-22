@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 import { collections } from '../config/db';
 import { verifyToken, verifyTechnician } from '../middleware/auth';
+import { isVerifiedTechnician } from '../lib/isVerifiedTechnician';
 
 const router = Router();
 
@@ -123,12 +124,9 @@ router.get('/:id', async (req, res) => {
   }
 
   const [withRating] = await attachRatingSummary([service]);
+  const verified = await isVerifiedTechnician(service.technicianEmail);
 
-  const approvedCount = await collections
-    .services()
-    .countDocuments({ technicianEmail: service.technicianEmail, approvalStatus: 'approved' });
-
-  res.send({ ...withRating, isVerified: approvedCount > 0 });
+  res.send({ ...withRating, isVerified: verified });
 });
 
 // POST /api/services - technician only

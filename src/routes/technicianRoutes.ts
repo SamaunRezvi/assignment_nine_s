@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { collections } from '../config/db';
+import { isVerifiedTechnician } from '../lib/isVerifiedTechnician';
 
 const router = Router();
 
@@ -19,9 +20,7 @@ router.get('/:email', async (req, res) => {
     .sort({ createdAt: -1 })
     .toArray();
 
-  const approvedCount = await collections
-    .services()
-    .countDocuments({ technicianEmail: email, approvalStatus: 'approved' });
+  const verified = await isVerifiedTechnician(email);
 
   res.send({
     name: technician.name,
@@ -29,7 +28,7 @@ router.get('/:email', async (req, res) => {
     image: technician.image || null,
     area: technician.area || '',
     bio: technician.bio || '',
-    isVerified: approvedCount > 0,
+    isVerified: verified,
     services,
   });
 });
