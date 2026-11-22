@@ -132,6 +132,29 @@ npm run dev
 | `GOOGLE_CLIENT_ID` | Google OAuth client id |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 
+## Live booking notifications
+
+Authenticated endpoints:
+
+- `GET /api/notifications`: latest 30 booking-history events, unread count, and preferences.
+- `GET /api/notifications/stream`: Server-Sent Events, using the existing Bearer JWT header.
+- `PATCH /api/notifications/preferences`: `{ "enabled": true }` saves the user's alert preference.
+- `PATCH /api/notifications/read`: `{ "readAt": "<ISO timestamp>" }` advances the user's read watermark.
+
+Customer events are restricted to their own bookings; technicians receive events
+for their assigned bookings; admins receive platform booking events. The API
+reads persisted booking history every three seconds while connected, so it works
+across API instances and recovers missed events on reconnect. Streams rotate
+after 55 seconds for reauthentication, stop querying on disconnect, and avoid
+proxy buffering. No MongoDB change streams or additional services are required.
+
+Preferences and read state are stored on the user record. Existing users default
+to alerts enabled. Deploy this server before the corresponding client update.
+
+Run `npm run test:notifications` for role scoping, authentication, preference/read
+validation, SSE delivery, reconnect recovery, and disconnect cleanup tests using
+an isolated in-memory database stub.
+
 ## npm Packages Used
 
 express, mongodb, cors, dotenv, jsonwebtoken, stripe, better-auth, typescript, ts-node-dev

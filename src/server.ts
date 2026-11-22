@@ -11,6 +11,7 @@ import paymentRoutes from './routes/paymentRoutes';
 import adminRoutes from './routes/adminRoutes';
 import userRoutes from './routes/userRoutes';
 import technicianRoutes from './routes/technicianRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -59,6 +60,7 @@ async function start() {
   app.use('/api/admin', adminRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/technicians', technicianRoutes);
+  app.use('/api/notifications', notificationRoutes);
 
   app.get('/health', (_req, res) => {
     res.send({ status: 'ok', uptime: process.uptime() });
