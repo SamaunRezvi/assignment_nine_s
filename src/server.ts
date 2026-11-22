@@ -34,6 +34,11 @@ async function start() {
 
   app.use(express.json());
 
+  app.use((req, _res, next) => {
+    console.log(`${req.method} ${req.originalUrl}`);
+    next();
+  });
+
   app.get('/', (_req, res) => {
     res.send({ message: 'FixMate server is running' });
   });
