@@ -6,6 +6,7 @@ import { verifyToken, verifyCustomer, verifyTechnician } from '../middleware/aut
 const router = Router();
 
 const ACTIVE_STATUSES = ['requested', 'accepted', 'in-progress'];
+const ALL_STATUSES = ['requested', 'accepted', 'rejected', 'in-progress', 'completed', 'cancelled'];
 
 // POST /api/bookings - customer only
 router.post('/', verifyToken, verifyCustomer, async (req, res) => {
@@ -95,6 +96,10 @@ router.get('/my', verifyToken, verifyCustomer, async (req, res) => {
 // GET /api/bookings/technician - technician only, own bookings only
 router.get('/technician', verifyToken, verifyTechnician, async (req, res) => {
   const { status } = req.query as Record<string, string>;
+
+  if (status && status !== 'all' && !ALL_STATUSES.includes(status)) {
+    return res.status(400).send({ message: 'Invalid status filter' });
+  }
 
   const query: Record<string, unknown> = { technicianEmail: req.user!.email };
   if (status && status !== 'all') {
