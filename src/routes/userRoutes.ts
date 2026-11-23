@@ -70,6 +70,12 @@ router.patch('/profile', verifyToken, async (req, res) => {
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+// GET /api/users/availability - technician only, own account only
+router.get('/availability', verifyToken, verifyTechnician, async (req, res) => {
+  const user = await collections.users().findOne({ email: req.user!.email });
+  res.send({ unavailableDates: user?.unavailableDates ?? [] });
+});
+
 // PATCH /api/users/availability - technician only, own account only
 router.patch('/availability', verifyToken, verifyTechnician, async (req, res) => {
   const { date, action } = req.body;
