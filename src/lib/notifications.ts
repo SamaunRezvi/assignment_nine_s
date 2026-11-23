@@ -55,6 +55,18 @@ export async function notificationSnapshot(user: AuthUser) {
       title: STATUS_TEXT[event.status],
       message: buildMessage(event),
       createdAt: new Date(event.createdAt).toISOString(), href,
+      // Raw details let the client write the text in the reader's language;
+      // title and message stay as the English fallback.
+      status: event.status,
+      serviceTitle: event.serviceTitle,
+      customerName: event.customerName,
+      // Same exposure as the old text: only feedback events carry the review.
+      rating: event.status === 'rated' ? event.rating : undefined,
+      review: event.status === 'rated' ? (event.review || '').slice(0, 160) : undefined,
+      shift: event.shift,
+      assignedTimeSlot: event.assignedTimeSlot,
+      proposedDate: event.proposedDate ? new Date(event.proposedDate).toISOString() : undefined,
+      proposedShift: event.proposedShift,
     })),
   };
 }
