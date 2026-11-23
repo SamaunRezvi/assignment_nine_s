@@ -30,6 +30,7 @@ router.get('/:email', publicApiLimiter, async (req, res) => {
     area: technician.area || '',
     bio: technician.bio || '',
     isVerified: verified,
+    unavailableDates: technician.unavailableDates ?? [],
     services,
   });
 });
