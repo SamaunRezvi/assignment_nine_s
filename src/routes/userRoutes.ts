@@ -97,4 +97,38 @@ router.patch('/availability', verifyToken, verifyTechnician, async (req, res) =>
   res.send({ unavailableDates: user?.unavailableDates ?? [] });
 });
 
+const SHIFTS = ['morning', 'noon', 'evening', 'night'];
+
+// GET /api/users/shift-locks - technician only, own account only
+router.get('/shift-locks', verifyToken, verifyTechnician, async (req, res) => {
+  const user = await collections.users().findOne({ email: req.user!.email });
+  res.send({ lockedShifts: user?.lockedShifts ?? [] });
+});
+
+// PATCH /api/users/shift-lock - technician only, own account only
+router.patch('/shift-lock', verifyToken, verifyTechnician, async (req, res) => {
+  const { date, shift, action } = req.body;
+
+  if (typeof date !== 'string' || !DATE_PATTERN.test(date)) {
+    return res.status(400).send({ message: 'Date must be in YYYY-MM-DD format' });
+  }
+
+  if (!SHIFTS.includes(shift)) {
+    return res.status(400).send({ message: 'Shift must be morning, noon, evening or night' });
+  }
+
+  if (action !== 'lock' && action !== 'unlock') {
+    return res.status(400).send({ message: 'Action must be lock or unlock' });
+  }
+
+  const entry = { date, shift };
+  const update = action === 'lock'
+    ? { $addToSet: { lockedShifts: entry } }
+    : { $pull: { lockedShifts: entry } };
+
+  await collections.users().updateOne({ email: req.user!.email }, update as never);
+  const user = await collections.users().findOne({ email: req.user!.email });
+  res.send({ lockedShifts: user?.lockedShifts ?? [] });
+});
+
 export default router;

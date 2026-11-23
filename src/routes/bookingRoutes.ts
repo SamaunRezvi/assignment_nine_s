@@ -7,18 +7,23 @@ import { sendBookingStatusEmail } from '../lib/email';
 const router = Router();
 
 const ACTIVE_STATUSES = ['requested', 'accepted', 'in-progress'];
-const ALL_STATUSES = ['requested', 'accepted', 'rejected', 'in-progress', 'completed', 'cancelled'];
+const ALL_STATUSES = ['requested', 'accepted', 'rejected', 'in-progress', 'completed', 'cancelled', 'reschedule-proposed'];
+const SHIFTS = ['morning', 'noon', 'evening', 'night'];
 
 // POST /api/bookings - customer only
 router.post('/', verifyToken, verifyCustomer, async (req, res) => {
   const user = req.user!;
-  const { serviceId, preferredDate } = req.body;
+  const { serviceId, preferredDate, shift } = req.body;
   const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : '';
   const address = typeof req.body.address === 'string' ? req.body.address.trim() : '';
   const problemDescription = typeof req.body.problemDescription === 'string' ? req.body.problemDescription.trim() : '';
 
-  if (!serviceId || !phone || !address || !preferredDate || !problemDescription) {
+  if (!serviceId || !phone || !address || !preferredDate || !problemDescription || !shift) {
     return res.status(400).send({ message: 'All fields are required' });
+  }
+
+  if (!SHIFTS.includes(shift)) {
+    return res.status(400).send({ message: 'Shift must be morning, noon, evening or night' });
   }
 
   if (problemDescription.length < 20) {
@@ -64,6 +69,14 @@ router.post('/', verifyToken, verifyCustomer, async (req, res) => {
     return res.status(409).send({ message: 'The technician is not available on this date' });
   }
 
+  const isShiftLocked = technician?.lockedShifts?.some(
+    (entry: { date: string; shift: string }) => entry.date === preferredDateStr && entry.shift === shift
+  );
+
+  if (isShiftLocked) {
+    return res.status(409).send({ message: 'This shift is fully booked. Please choose another shift or date.' });
+  }
+
   const customer = await collections.users().findOne({ email: user.email });
 
   const booking = {
@@ -79,6 +92,7 @@ router.post('/', verifyToken, verifyCustomer, async (req, res) => {
     customerPhone: phone,
     address,
     preferredDate: requestedDate,
+    shift,
     problemDescription,
     status: 'requested',
     finalAmount: service.basePrice,
@@ -198,6 +212,7 @@ router.patch('/:id/status', verifyToken, verifyTechnician, async (req, res) => {
   const id = req.params.id as string;
   const { status, finalAmount } = req.body;
   const completionPhoto = typeof req.body.completionPhoto === 'string' ? req.body.completionPhoto : undefined;
+  const assignedTimeSlot = typeof req.body.assignedTimeSlot === 'string' ? req.body.assignedTimeSlot.trim() : undefined;
 
   if (!ObjectId.isValid(id)) {
     return res.status(404).send({ message: 'Booking not found' });
@@ -224,6 +239,10 @@ router.patch('/:id/status', verifyToken, verifyTechnician, async (req, res) => {
 
   const update: Record<string, unknown> = { status };
 
+  if (status === 'accepted' && assignedTimeSlot) {
+    update.assignedTimeSlot = assignedTimeSlot;
+  }
+
   if (status === 'completed') {
     const amount = Number(finalAmount);
     if (!amount || amount <= 0) {
@@ -249,12 +268,121 @@ router.patch('/:id/status', verifyToken, verifyTechnician, async (req, res) => {
         serviceTitle: booking.serviceTitle,
         technicianName: booking.technicianName,
         finalAmount: status === 'completed' ? Number(finalAmount) : undefined,
+        assignedTimeSlot: status === 'accepted' ? assignedTimeSlot : undefined,
       },
       status
     );
   }
 
   res.send({ message: 'Booking status updated' });
+});
+
+// PATCH /api/bookings/:id/propose-reschedule - technician only, owner only, requested only
+router.patch('/:id/propose-reschedule', verifyToken, verifyTechnician, async (req, res) => {
+  const id = req.params.id as string;
+  const { proposedDate, proposedShift } = req.body;
+  const message = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (!proposedDate || !SHIFTS.includes(proposedShift)) {
+    return res.status(400).send({ message: 'A valid proposed date and shift are required' });
+  }
+
+  const proposedDateObj = new Date(proposedDate);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  if (Number.isNaN(proposedDateObj.getTime()) || proposedDateObj < startOfToday) {
+    return res.status(400).send({ message: 'Proposed date must be today or a future date' });
+  }
+
+  const booking = await collections.bookings().findOne({ _id: new ObjectId(id) });
+
+  if (!booking) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (booking.technicianEmail !== req.user!.email) {
+    return res.status(403).send({ message: 'Forbidden access' });
+  }
+
+  if (booking.status !== 'requested') {
+    return res.status(409).send({ message: 'Only a requested booking can be rescheduled' });
+  }
+
+  await collections.bookings().updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: { status: 'reschedule-proposed', proposedDate: proposedDateObj, proposedShift, rescheduleMessage: message },
+      $push: { statusHistory: { status: 'reschedule-proposed', changedAt: new Date() } } as never,
+    }
+  );
+
+  void sendBookingStatusEmail(
+    {
+      customerEmail: booking.customerEmail,
+      customerName: booking.customerName,
+      serviceTitle: booking.serviceTitle,
+      technicianName: booking.technicianName,
+      proposedDate: proposedDateObj.toLocaleDateString(),
+      proposedShift,
+    },
+    'reschedule-proposed'
+  );
+
+  res.send({ message: 'Reschedule proposed' });
+});
+
+// PATCH /api/bookings/:id/reschedule-response - customer only, owner only, reschedule-proposed only
+router.patch('/:id/reschedule-response', verifyToken, verifyCustomer, async (req, res) => {
+  const id = req.params.id as string;
+  const { accept } = req.body;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (typeof accept !== 'boolean') {
+    return res.status(400).send({ message: 'accept must be true or false' });
+  }
+
+  const booking = await collections.bookings().findOne({ _id: new ObjectId(id) });
+
+  if (!booking) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (booking.customerEmail !== req.user!.email) {
+    return res.status(403).send({ message: 'Forbidden access' });
+  }
+
+  if (booking.status !== 'reschedule-proposed') {
+    return res.status(409).send({ message: 'This booking has no pending reschedule proposal' });
+  }
+
+  if (accept) {
+    await collections.bookings().updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: { status: 'requested', preferredDate: booking.proposedDate, shift: booking.proposedShift },
+        $unset: { proposedDate: '', proposedShift: '', rescheduleMessage: '' },
+        $push: { statusHistory: { status: 'requested', changedAt: new Date() } } as never,
+      }
+    );
+    return res.send({ message: 'Reschedule accepted' });
+  }
+
+  await collections.bookings().updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: { status: 'rejected' },
+      $push: { statusHistory: { status: 'rejected', changedAt: new Date() } } as never,
+    }
+  );
+  res.send({ message: 'Reschedule rejected' });
 });
 
 // PATCH /api/bookings/:id/rating - customer only, owner only, paid + completed only, once
