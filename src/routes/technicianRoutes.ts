@@ -31,6 +31,7 @@ router.get('/:email', publicApiLimiter, async (req, res) => {
     bio: technician.bio || '',
     isVerified: verified,
     unavailableDates: technician.unavailableDates ?? [],
+    lockedShifts: technician.lockedShifts ?? [],
     services,
   });
 });
