@@ -22,6 +22,11 @@ export function createAuth() {
     account: {
       storeStateStrategy: 'cookie',
     },
+    advanced: {
+      ipAddress: {
+        ipAddressHeaders: ['x-forwarded-for'],
+      },
+    },
     user: {
       additionalFields: {
         role: {

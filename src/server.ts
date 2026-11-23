@@ -16,6 +16,10 @@ import notificationRoutes from './routes/notificationRoutes';
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Render sits in front of this app as a single reverse proxy hop, so the
+// X-Forwarded-For header it sets can be trusted for the real client IP.
+app.set('trust proxy', 1);
+
 const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:3000'].filter(Boolean) as string[];
 
 app.use(

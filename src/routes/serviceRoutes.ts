@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { collections } from '../config/db';
 import { verifyToken, verifyTechnician } from '../middleware/auth';
 import { isVerifiedTechnician } from '../lib/isVerifiedTechnician';
+import { publicApiLimiter } from '../middleware/rateLimit';
 
 const router = Router();
 
@@ -43,7 +44,7 @@ async function attachRatingSummary<T extends { _id: unknown }>(services: T[]): P
 }
 
 // GET /api/services - public, supports search/filter/sort/pagination (Challenge 1)
-router.get('/', async (req, res) => {
+router.get('/', publicApiLimiter, async (req, res) => {
   const { search, category, serviceMode, area, sort, page = '1', limit = '12' } = req.query as Record<string, string>;
 
   const query: Record<string, unknown> = {
@@ -96,7 +97,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/services/featured - home page, latest 6 approved + available
-router.get('/featured', async (_req, res) => {
+router.get('/featured', publicApiLimiter, async (_req, res) => {
   const rawServices = await collections
     .services()
     .find({ approvalStatus: 'approved', isAvailable: true })
@@ -110,7 +111,7 @@ router.get('/featured', async (_req, res) => {
 });
 
 // GET /api/services/:id - public
-router.get('/:id', async (req, res) => {
+router.get('/:id', publicApiLimiter, async (req, res) => {
   const id = req.params.id as string;
 
   if (!ObjectId.isValid(id)) {

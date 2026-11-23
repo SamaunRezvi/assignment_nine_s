@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { collections } from '../config/db';
 import { isVerifiedTechnician } from '../lib/isVerifiedTechnician';
+import { publicApiLimiter } from '../middleware/rateLimit';
 
 const router = Router();
 
 // GET /api/technicians/:email - public technician profile with their approved services
-router.get('/:email', async (req, res) => {
+router.get('/:email', publicApiLimiter, async (req, res) => {
   const email = req.params.email as string;
 
   const technician = await collections.users().findOne({ email, role: 'technician' });
