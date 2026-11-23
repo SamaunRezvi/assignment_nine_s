@@ -29,11 +29,19 @@ export function createAuth() {
           // customer or technician, but the value must never be trusted as
           // sent: force anything other than those two back to customer so
           // nobody can sign up as admin by posting role in the request body.
+          //
+          // emailVerified is forced true for every new account because this
+          // app has no email verification flow of its own. Without this,
+          // an email/password signup is left unverified, and BetterAuth's
+          // account-linking requires the existing account to be verified
+          // before a later Google sign-in with the same address can attach
+          // to it - so a technician who signed up with email/password would
+          // get locked out of that account the first time they tried
+          // "Continue with Google".
           before: async (user) => {
             const role = (user as { role?: unknown }).role;
-            if (role !== 'customer' && role !== 'technician') {
-              return { data: { ...user, role: 'customer' } };
-            }
+            const safeRole = role === 'customer' || role === 'technician' ? role : 'customer';
+            return { data: { ...user, role: safeRole, emailVerified: true } };
           },
         },
         update: {
