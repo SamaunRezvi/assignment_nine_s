@@ -7,18 +7,29 @@ const STATUS_TEXT: Record<string, string> = {
   rated: 'New customer feedback',
 };
 
+// Each event goes to the one party who needs to act on or learn about it,
+// not to whoever already caused it: a technician is notified of a new
+// request, the customer is notified once the technician moves on it, and
+// admin only sees the payment as a platform-wide audit trail.
+const EVENTS_FOR_ROLE: Record<AuthUser['role'], string[]> = {
+  technician: ['requested', 'rated'],
+  customer: ['accepted', 'rejected', 'in-progress', 'completed', 'cancelled'],
+  admin: ['paid'],
+};
+
 export async function notificationSnapshot(user: AuthUser) {
   const profile = await collections.users().findOne({ email: user.email });
   if (!profile) throw new Error('Notification account not found');
   const readAt = profile.notificationsReadAt ? new Date(profile.notificationsReadAt) : new Date(0);
   const scope = user.role === 'admin' ? {} : user.role === 'technician'
     ? { technicianEmail: user.email } : { customerEmail: user.email };
+  const relevantStatuses = EVENTS_FOR_ROLE[user.role];
   // Use the persisted booking history as the event source, including events
   // written by other API instances and events missed while disconnected.
   const [result] = await collections.bookings().aggregate([
     { $match: scope },
     { $unwind: '$statusHistory' },
-    { $match: { 'statusHistory.status': { $in: Object.keys(STATUS_TEXT) } } },
+    { $match: { 'statusHistory.status': { $in: relevantStatuses } } },
     { $sort: { 'statusHistory.changedAt': -1, _id: -1 } },
     { $facet: {
       items: [{ $limit: 30 }, { $project: {
@@ -28,7 +39,7 @@ export async function notificationSnapshot(user: AuthUser) {
       unread: [{ $match: { 'statusHistory.changedAt': { $gt: readAt } } }, { $count: 'count' }],
     } },
   ]).toArray();
-  const href = user.role === 'admin' ? '/dashboard/admin/bookings' : user.role === 'technician'
+  const href = user.role === 'admin' ? '/dashboard/admin/transactions' : user.role === 'technician'
     ? '/dashboard/technician/requests' : '/dashboard/customer/bookings';
   return {
     enabled: profile.notificationsEnabled !== false,
