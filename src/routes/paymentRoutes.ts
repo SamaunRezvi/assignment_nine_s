@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { collections } from '../config/db';
 import { verifyToken, verifyCustomer } from '../middleware/auth';
 import { sendBookingStatusEmail } from '../lib/email';
+import { streamInvoicePdf } from '../lib/invoice';
 
 const router = Router();
 
@@ -155,6 +156,45 @@ router.get('/my', verifyToken, verifyCustomer, async (req, res) => {
     .toArray();
 
   res.send(payments);
+});
+
+// GET /api/payments/:bookingId/invoice - customer only, owner only, paid booking only
+router.get('/:bookingId/invoice', verifyToken, verifyCustomer, async (req, res) => {
+  const bookingId = req.params.bookingId as string;
+
+  if (!ObjectId.isValid(bookingId)) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  const booking = await collections.bookings().findOne({ _id: new ObjectId(bookingId) });
+
+  if (!booking) {
+    return res.status(404).send({ message: 'Booking not found' });
+  }
+
+  if (booking.customerEmail !== req.user!.email) {
+    return res.status(403).send({ message: 'Forbidden access' });
+  }
+
+  if (booking.paymentStatus !== 'paid') {
+    return res.status(409).send({ message: 'This booking has not been paid yet' });
+  }
+
+  const payment = await collections.payments().findOne({ bookingId });
+
+  if (!payment) {
+    return res.status(404).send({ message: 'Payment record not found' });
+  }
+
+  streamInvoicePdf(res, {
+    serviceTitle: booking.serviceTitle,
+    customerName: booking.customerName,
+    technicianName: booking.technicianName,
+    amount: payment.amount,
+    transactionId: payment.transactionId,
+    paidAt: payment.paidAt,
+    bookingId: String(booking._id),
+  });
 });
 
 export default router;
