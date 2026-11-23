@@ -22,6 +22,36 @@ export function createAuth() {
     account: {
       storeStateStrategy: 'cookie',
     },
+    databaseHooks: {
+      user: {
+        create: {
+          // The role field is exposed as a sign-up input so a user can pick
+          // customer or technician, but the value must never be trusted as
+          // sent: force anything other than those two back to customer so
+          // nobody can sign up as admin by posting role in the request body.
+          before: async (user) => {
+            const role = (user as { role?: unknown }).role;
+            if (role !== 'customer' && role !== 'technician') {
+              return { data: { ...user, role: 'customer' } };
+            }
+          },
+        },
+        update: {
+          // Role changes only happen through the admin role-management
+          // route, never through the user's own profile/account update.
+          // A hook can only add or overwrite fields in the final write, it
+          // can't delete one, so the role has to be pinned back to its
+          // current DB value rather than just omitted from the result.
+          before: async (user, context) => {
+            if ('role' in user) {
+              const currentRole = (context as { context?: { session?: { user?: { role?: unknown } } } })
+                ?.context?.session?.user?.role;
+              return { data: { ...user, role: currentRole === 'technician' ? 'technician' : 'customer' } };
+            }
+          },
+        },
+      },
+    },
     advanced: {
       ipAddress: {
         ipAddressHeaders: ['x-forwarded-for'],
